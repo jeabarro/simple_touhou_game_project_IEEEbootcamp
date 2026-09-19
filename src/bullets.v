@@ -62,51 +62,58 @@ module bullets (
 );
 
     // ---------------------------------------------------------- dimensions
-    localparam [11:0] P1_BARW  = 12'd48;    // bar width, pitch is fixed at 128
-    localparam [11:0] P1_H     = 12'd320;   // bar height
+    localparam [10:0] P1_BARW  = 12'd48;    // bar width, pitch is fixed at 128
+    localparam [10:0] P1_H     = 12'd320;   // bar height
 
-    localparam [11:0] BR       = 12'd16;    // diamond bullet half-size (32x32)
-    localparam [11:0] P3_MIN   = 12'd24;    // crunch: vanish below this radius
+    localparam [10:0] BR       = 12'd16;    // diamond bullet half-size (32x32)
+    localparam [10:0] P3_MIN   = 12'd24;    // crunch: vanish below this radius
 
-    localparam [11:0] P4_W     = 12'd240;   // box outer width
-    localparam [11:0] P4_H     = 12'd168;   // box outer height
-    localparam [11:0] P4_T     = 12'd44;    // box wall thickness
+    localparam [10:0] P4_W     = 12'd240;   // box outer width
+    localparam [10:0] P4_H     = 12'd168;   // box outer height
+    localparam [10:0] P4_T     = 12'd44;    // box wall thickness
 
-    localparam [11:0] P5_INS   = 12'd176;   // wall inset from screen centre
+    localparam [10:0] P5_W     = 12'd128;   // wall thickness: one column of a 5-column grid
 
     localparam [11:0] HB       = 12'd3;     // player hitbox half-size (6x6)
 
     // ------------------------------------------------------ random placement
     // rnd_a and rnd_b come from disjoint LFSR slices so x and y are
     // independent.  Ranges are chosen to keep the shape mostly on screen.
-    wire [11:0] cx   = 12'd64  + {3'd0, rnd_a[8:0]};   //  64 .. 575
-    wire [11:0] cy   = 12'd112 + {4'd0, rnd_b[7:0]};   // 112 .. 367
-    wire [11:0] boxy = 12'd40  + {4'd0, rnd_b[7:0]};   //  40 .. 295
+    wire [10:0] cx   = 11'd64  + {2'd0, rnd_a[8:0]};   //  64 .. 575
+    wire [10:0] cy   = 11'd112 + {3'd0, rnd_b[7:0]};   // 112 .. 367
+    wire [10:0] boxy = 11'd40  + {3'd0, rnd_b[7:0]};   //  40 .. 295
 
     // --------------------------------------------------------- anchor mux
-    reg [11:0] ax, ay;
+    reg [10:0] ax, ay;
     always @* begin
         case (pattern_id)
-            3'd0:    begin ax = {5'd0, rnd_a[6:0]}; ay = mov;      end // lanes
+            3'd0:    begin ax = {4'd0, rnd_a[6:0]}; ay = mov[10:0];      end // lanes
             3'd1,
-            3'd2:    begin ax = cx;                 ay = cy;       end // diamond
-            3'd3:    begin ax = mov;                ay = boxy;     end // box
-            default: begin ax = 12'd320;            ay = 12'd240;  end // walls
+            3'd2:    begin ax = cx[10:0];             ay = cy[10:0];       end // diamond
+            3'd3:    begin ax = mov[10:0];             ay = boxy[10:0];     end // box
+            default: begin ax = 11'd320;              ay = 11'd240;  end // walls
         endcase
     end
 
     // --------------------------------------------------- shared arithmetic
-    wire [11:0] sx = {2'd0, hpos};
-    wire [11:0] sy = {2'd0, vpos};
+    // All screen/anchor coordinates fit in signed 11 bits
+    // (-1024 .. +1023).  Keeping this pixel datapath at 11 bits instead of
+    // 12 bits shortens the carry chains and reduces routing load.
+    wire [10:0] sx = {1'b0, hpos};
+    wire [10:0] sy = {1'b0, vpos};
 
-    wire [11:0] dx = sx - ax;
-    wire [11:0] dy = sy - ay;
+    wire [10:0] dx = sx - ax;
+    wire [10:0] dy = sy - ay;
 
-    wire [11:0] adx = dx[11] ? (12'd0 - dx) : dx;      // |dx|
-    wire [11:0] ady = dy[11] ? (12'd0 - dy) : dy;      // |dy|
+    wire [10:0] adx = dx[10] ? (11'd0 - dx) : dx;
+    wire [10:0] ady = dy[10] ? (11'd0 - dy) : dy;
 
-    wire [11:0] erx = (adx >= mov) ? (adx - mov) : (mov - adx);   // ||dx| - r|
-    wire [11:0] ery = (ady >= mov) ? (ady - mov) : (mov - ady);   // ||dy| - r|
+    // A diamond arm is | |d| - mov | < BR.  Express that as a pair of
+    // range tests rather than a subtract/compare/mux absolute-value chain.
+    // The strict '>' preserves the original strict '< BR' boundary.
+    wire [12:0] mov_br = {2'd0, mov} + 13'd16;
+    wire [12:0] adx_br = {2'd0, adx} + 13'd16;
+    wire [12:0] ady_br = {2'd0, ady} + 13'd16;
 
     // ------------------------------------------------------- the predicates
 
@@ -120,19 +127,27 @@ module bullets (
     // 2 and 3: four bullets at (cx, cy+-r) and (cx+-r, cy).
     // Identical geometry; only the direction of r differs, which is why these
     // two patterns cost barely more than one.
-    wire h_diamond = ((adx < BR) && (ery < BR))     // the vertical pair
-                  || ((ady < BR) && (erx < BR));    // the horizontal pair
+    wire h_diamond = ((adx < BR) &&
+                      (ady < mov_br) && (ady_br > {2'd0, mov}))
+                  || ((ady < BR) &&
+                      (adx < mov_br) && (adx_br > {2'd0, mov}));
 
     wire h2 = h_diamond;
-    wire h3 = h_diamond && (mov >= P3_MIN);         // vanish at the centre
+    wire h3 = h_diamond && (mov[10:0] >= 11'd24);         // vanish at the centre
 
     // 4: hollow box sweeping left to right -- outer rectangle minus inner.
     wire h4 = (dx < P4_W) && (dy < P4_H)
               && !((dx >= P4_T) && (dx < (P4_W - P4_T)) &&
                    (dy >= P4_T) && (dy < (P4_H - P4_T)));
 
-    // 5: two full-height walls, held for the whole wave.
-    wire h5 = (adx >= P5_INS);
+    // 5: two full-height walls closing in from the sides.  In grid terms this
+    // is  X _ _ _ X  on every row, with both X columns sliding toward the
+    // middle.  `mov` is the distance from screen centre to the INNER edge of
+    // each wall (attack_seq counts it down), so the wall covers
+    // mov <= |x - centre| < mov + P5_W.  Both walls come from one compare pair
+    // because adx is already |x - centre|.
+    wire [10:0] mov11 = mov[10:0];
+    wire h5 = (adx >= mov11) && (adx < (mov11 + P5_W));
 
     reg raw;
     always @* begin
