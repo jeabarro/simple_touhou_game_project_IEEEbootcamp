@@ -13,7 +13,7 @@
  
 `default_nettype none
 
-module tt_um_bullet_hell (
+module tt_um_project_JEAbarro (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs (Tiny VGA Pmod)
     input  wire [7:0] uio_in,   // IOs: Input path
