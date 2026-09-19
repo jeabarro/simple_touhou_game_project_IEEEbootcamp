@@ -62,6 +62,9 @@ module tt_um_bullet_hell (
         .right (right)
     );
 
+    // any direction currently held -- drives the player's "thrust" skin
+    wire moving = up | down | left | right;
+
     // ------------------------------------------------------------- rng core
     wire [15:0] rnd;
     wire [2:0]  rnd_pattern;
@@ -177,6 +180,18 @@ module tt_um_bullet_hell (
         .hud_rgb (hud_rgb)
     );
 
+    // ---------------------------------------------------------- text overlay
+    wire       overlay_on;
+    wire [5:0] overlay_rgb;
+
+    overlay u_overlay (
+        .hpos        (hpos),
+        .vpos        (vpos),
+        .state       (state),
+        .overlay_on  (overlay_on),
+        .overlay_rgb (overlay_rgb)
+    );
+
     // ------------------------------------------------------------- renderer
     renderer u_render (
         .hpos           (hpos),
@@ -186,9 +201,12 @@ module tt_um_bullet_hell (
         .player_px      (player_px),
         .player_py      (player_py),
         .player_visible (player_visible),
+        .moving         (moving),
         .bullet_on      (bullet_on),
         .hud_on         (hud_on),
         .hud_rgb        (hud_rgb),
+        .overlay_on     (overlay_on),
+        .overlay_rgb    (overlay_rgb),
         .R              (R),
         .G              (G),
         .B              (B)
