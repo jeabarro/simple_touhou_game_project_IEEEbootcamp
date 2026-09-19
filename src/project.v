@@ -102,7 +102,6 @@ module tt_um_bullet_hell (
 
     // ---------------------------------------------------------- player ship
     wire [9:0] player_px, player_py;
-    wire [3:0] face;
 
     player u_player (
         .clk        (clk),
@@ -115,8 +114,7 @@ module tt_um_bullet_hell (
         .left       (left),
         .right      (right),
         .px         (player_px),
-        .py         (player_py),
-        .face       (face)
+        .py         (player_py)
     );
 
     // ------------------------------------------------------ wave sequencer
@@ -179,18 +177,6 @@ module tt_um_bullet_hell (
         .hud_rgb (hud_rgb)
     );
 
-    // ------------------------------------------- title / game-over text
-    wire       text_on;
-    wire [5:0] text_rgb;
-
-    text_overlay u_text (
-        .hpos     (hpos),
-        .vpos     (vpos),
-        .state    (state),
-        .text_on  (text_on),
-        .text_rgb (text_rgb)
-    );
-
     // ------------------------------------------------------------- renderer
     renderer u_render (
         .hpos           (hpos),
@@ -200,12 +186,9 @@ module tt_um_bullet_hell (
         .player_px      (player_px),
         .player_py      (player_py),
         .player_visible (player_visible),
-        .face           (face),
         .bullet_on      (bullet_on),
         .hud_on         (hud_on),
         .hud_rgb        (hud_rgb),
-        .text_on        (text_on),
-        .text_rgb       (text_rgb),
         .R              (R),
         .G              (G),
         .B              (B)

@@ -72,7 +72,7 @@ module bullets (
     localparam [11:0] P4_H     = 12'd168;   // box outer height
     localparam [11:0] P4_T     = 12'd44;    // box wall thickness
 
-    localparam [11:0] P5_W     = 12'd128;   // wall thickness: one column of a 5-column grid
+    localparam [11:0] P5_INS   = 12'd176;   // wall inset from screen centre
 
     localparam [11:0] HB       = 12'd3;     // player hitbox half-size (6x6)
 
@@ -131,13 +131,8 @@ module bullets (
               && !((dx >= P4_T) && (dx < (P4_W - P4_T)) &&
                    (dy >= P4_T) && (dy < (P4_H - P4_T)));
 
-    // 5: two full-height walls closing in from the sides.  In grid terms this
-    // is  X _ _ _ X  on every row, with both X columns sliding toward the
-    // middle.  `mov` is the distance from screen centre to the INNER edge of
-    // each wall (attack_seq counts it down), so the wall covers
-    // mov <= |x - centre| < mov + P5_W.  Both walls come from one compare pair
-    // because adx is already |x - centre|.
-    wire h5 = (adx >= mov) && (adx < (mov + P5_W));
+    // 5: two full-height walls, held for the whole wave.
+    wire h5 = (adx >= P5_INS);
 
     reg raw;
     always @* begin
