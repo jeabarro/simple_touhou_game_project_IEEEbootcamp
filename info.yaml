@@ -20,6 +20,15 @@ project:
     - "project.v"
     - "hvsync_generator.v"
     - "gamepad_pmod.v"
+    - "attack_seq.v"
+    - "bullets.v"
+    - "game_ctrl.v"
+    - "hud.v"
+    - "hvsync_generator.v"
+    - "input_ctrl.v"
+    - "player.v"
+    - "renderer.v"
+    - "rng.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
