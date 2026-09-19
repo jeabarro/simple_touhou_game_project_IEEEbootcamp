@@ -17,4 +17,4 @@ Using the game controller keys (up down left right) for control. Press the down 
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Controller, vga display.
