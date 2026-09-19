@@ -62,9 +62,6 @@ module tt_um_bullet_hell (
         .right (right)
     );
 
-    // any direction currently held -- drives the player's "thrust" skin
-    wire moving = up | down | left | right;
-
     // ------------------------------------------------------------- rng core
     wire [15:0] rnd;
     wire [2:0]  rnd_pattern;
@@ -105,6 +102,7 @@ module tt_um_bullet_hell (
 
     // ---------------------------------------------------------- player ship
     wire [9:0] player_px, player_py;
+    wire [3:0] face;
 
     player u_player (
         .clk        (clk),
@@ -117,7 +115,8 @@ module tt_um_bullet_hell (
         .left       (left),
         .right      (right),
         .px         (player_px),
-        .py         (player_py)
+        .py         (player_py),
+        .face       (face)
     );
 
     // ------------------------------------------------------ wave sequencer
@@ -180,16 +179,16 @@ module tt_um_bullet_hell (
         .hud_rgb (hud_rgb)
     );
 
-    // ---------------------------------------------------------- text overlay
-    wire       overlay_on;
-    wire [5:0] overlay_rgb;
+    // ------------------------------------------- title / game-over text
+    wire       text_on;
+    wire [5:0] text_rgb;
 
-    overlay u_overlay (
-        .hpos        (hpos),
-        .vpos        (vpos),
-        .state       (state),
-        .overlay_on  (overlay_on),
-        .overlay_rgb (overlay_rgb)
+    text_overlay u_text (
+        .hpos     (hpos),
+        .vpos     (vpos),
+        .state    (state),
+        .text_on  (text_on),
+        .text_rgb (text_rgb)
     );
 
     // ------------------------------------------------------------- renderer
@@ -201,12 +200,12 @@ module tt_um_bullet_hell (
         .player_px      (player_px),
         .player_py      (player_py),
         .player_visible (player_visible),
-        .moving         (moving),
+        .face           (face),
         .bullet_on      (bullet_on),
         .hud_on         (hud_on),
         .hud_rgb        (hud_rgb),
-        .overlay_on     (overlay_on),
-        .overlay_rgb    (overlay_rgb),
+        .text_on        (text_on),
+        .text_rgb       (text_rgb),
         .R              (R),
         .G              (G),
         .B              (B)

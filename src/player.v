@@ -10,6 +10,11 @@
  * Only the integer part (px/py) leaves the module.  The fraction never
  * reaches the renderer, so there is no cost on the pixel path.
  *
+ * `face` reports which direction buttons are held, sampled once per frame
+ * like everything else so the sprite can never change halfway down the
+ * screen.  Opposing presses cancel, exactly as they do for movement, so
+ * the sprite always matches what the ship is being told to do.
+ *
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +33,8 @@ module player #(
     input  wire       left,
     input  wire       right,
     output wire [9:0] px,               // integer centre, pixels
-    output wire [9:0] py
+    output wire [9:0] py,
+    output reg  [3:0] face              // {up, down, left, right}, held this frame
 );
 
     localparam [11:0] HALF    = 12'd5;                  // ship is 10 x 10 px
@@ -46,9 +52,13 @@ module player #(
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            xq <= START_X;
-            yq <= START_Y;
+            xq   <= START_X;
+            yq   <= START_Y;
+            face <= 4'b0000;
         end else if (frame_tick) begin
+            face <= active ? {up & ~down, down & ~up, left & ~right, right & ~left}
+                           : 4'b0000;
+
             if (rst_pos) begin
                 xq <= START_X;
                 yq <= START_Y;

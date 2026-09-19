@@ -16,9 +16,8 @@
  *   id 1  radiating diamond mov = radius,                    0 -> 640
  *   id 2  crunching diamond mov = radius,                  360 -> 0
  *   id 3  sweeping box      mov = left edge of the box,   -240 -> 640
- *   id 4  side walls        mov = wall inset from centre,  328 -> 40,
- *                           closing in from the sides, then vanishing
- *                           before the gap fully seals -- see P5_MIN below
+ *   id 4  side walls        mov = distance from centre to the walls' inner
+ *                           edges, 324 -> P5_END (they close in, then vanish)
  *
  * Negative positions are stored as 12-bit two's complement and every
  * "is this pixel inside" test in bullets.v is a single unsigned compare that
@@ -54,21 +53,20 @@ module attack_seq (
     localparam [11:0] P1_H     = 12'd320;   // height of the falling bars
     localparam [11:0] P3_R0    = 12'd360;   // crunch starting radius
     localparam [11:0] P4_W     = 12'd240;   // sweeping box width
-    localparam [11:0] P5_INS0  = 12'd328;   // walls' starting inset -- above
-                                             // the max possible |dx| (320),
-                                             // so they start fully offscreen
-    localparam [11:0] P5_MIN   = 12'd40;    // inset where the walls vanish;
-                                             // stopping short of 0 means the
-                                             // gap never fully seals, so a
-                                             // centred player is never
-                                             // guaranteed an unavoidable hit
+    localparam [11:0] P5_START = 12'd324;   // walls' inner edges begin just
+                                            // offscreen (screen half-width is 320)
+    localparam [11:0] P5_END   = 12'd32;    // ...and vanish when they are this far
+                                            // from centre, i.e. a 2*32 = 64 px gap
+                                            // is left.  Set to 0 for a full crush
+                                            // that cannot be dodged.
 
     // Safety caps only -- normal termination is positional.
     localparam [9:0]  P1_LEN   = 10'd400;
     localparam [9:0]  P2_LEN   = 10'd300;
     localparam [9:0]  P3_LEN   = 10'd200;
     localparam [9:0]  P4_LEN   = 10'd400;
-    localparam [9:0]  P5_LEN   = 10'd150;
+    localparam [9:0]  P5_LEN   = 10'd240;   // walls need (324-32)/2 = 146 frames
+                                            // at the slowest speed
 
     localparam [9:0]  FIRST_REST = 10'd90;  // 1.5 s before the first wave
     localparam [9:0]  REST_BASE  = 10'd150; // 2.5 s, shrinks with difficulty
@@ -88,8 +86,7 @@ module attack_seq (
             3'd1:    begin start_mov = 12'd0;         start_len = P2_LEN; end
             3'd2:    begin start_mov = P3_R0;         start_len = P3_LEN; end
             3'd3:    begin start_mov = 12'd0 - P4_W;  start_len = P4_LEN; end
-            3'd4:    begin start_mov = P5_INS0;       start_len = P5_LEN; end
-            default: begin start_mov = P5_INS0;       start_len = P5_LEN; end
+            default: begin start_mov = P5_START;      start_len = P5_LEN; end
         endcase
     end
 
@@ -103,10 +100,10 @@ module attack_seq (
             3'd1:    begin dir_dn = 1'b0; moving = 1'b1; spd_base = 12'd3; end
             3'd2:    begin dir_dn = 1'b1; moving = 1'b1; spd_base = 12'd3; end
             3'd3:    begin dir_dn = 1'b0; moving = 1'b1; spd_base = 12'd3; end
-            // Walls close in the same way the diamond crunches: mov counts
-            // down, and bullets.v reads it straight as the current inset.
-            3'd4:    begin dir_dn = 1'b1; moving = 1'b1; spd_base = 12'd3; end
-            default: begin dir_dn = 1'b1; moving = 1'b1; spd_base = 12'd3; end
+            // Walls close in slower than the ship can run (2 px/frame vs
+            // 2.25) at diff 0, so the first walls are always escapable; the
+            // difficulty ladder then speeds them up to 5 px/frame.
+            default: begin dir_dn = 1'b1; moving = 1'b1; spd_base = 12'd2; end
         endcase
     end
 
@@ -121,8 +118,7 @@ module attack_seq (
             3'd1:    wave_over = (mov >= 12'd640);
             3'd2:    wave_over = (mov == 12'd0);
             3'd3:    wave_over = (!mov[11]) && (mov >= 12'd640);
-            3'd4:    wave_over = (mov <= P5_MIN);
-            default: wave_over = (mov <= P5_MIN);
+            default: wave_over = (mov <= P5_END);
         endcase
     end
 

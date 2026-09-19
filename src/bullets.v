@@ -72,6 +72,8 @@ module bullets (
     localparam [11:0] P4_H     = 12'd168;   // box outer height
     localparam [11:0] P4_T     = 12'd44;    // box wall thickness
 
+    localparam [11:0] P5_W     = 12'd128;   // wall thickness: one column of a 5-column grid
+
     localparam [11:0] HB       = 12'd3;     // player hitbox half-size (6x6)
 
     // ------------------------------------------------------ random placement
@@ -89,8 +91,7 @@ module bullets (
             3'd1,
             3'd2:    begin ax = cx;                 ay = cy;       end // diamond
             3'd3:    begin ax = mov;                ay = boxy;     end // box
-            3'd4:    begin ax = 12'd320;             ay = 12'd240;  end // walls
-            default: begin ax = 12'd320;             ay = 12'd240;  end
+            default: begin ax = 12'd320;            ay = 12'd240;  end // walls
         endcase
     end
 
@@ -130,12 +131,13 @@ module bullets (
               && !((dx >= P4_T) && (dx < (P4_W - P4_T)) &&
                    (dy >= P4_T) && (dy < (P4_H - P4_T)));
 
-    // 5: two full-height walls closing in from the sides.  `mov` IS the
-    // current inset -- attack_seq.v counts it down from off-screen (328)
-    // toward P5_MIN, the same way it counts the crunch pattern's radius
-    // down toward P3_MIN, so this is the same trick applied to a threshold
-    // instead of a distance.
-    wire h5 = (adx >= mov);
+    // 5: two full-height walls closing in from the sides.  In grid terms this
+    // is  X _ _ _ X  on every row, with both X columns sliding toward the
+    // middle.  `mov` is the distance from screen centre to the INNER edge of
+    // each wall (attack_seq counts it down), so the wall covers
+    // mov <= |x - centre| < mov + P5_W.  Both walls come from one compare pair
+    // because adx is already |x - centre|.
+    wire h5 = (adx >= mov) && (adx < (mov + P5_W));
 
     reg raw;
     always @* begin
@@ -144,7 +146,6 @@ module bullets (
             3'd1:    raw = h2;
             3'd2:    raw = h3;
             3'd3:    raw = h4;
-            3'd4:    raw = h5;
             default: raw = h5;
         endcase
     end
