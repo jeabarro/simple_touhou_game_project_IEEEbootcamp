@@ -28,7 +28,7 @@ project:
     - "input_ctrl.v"
     - "renderer.v"
     - "player.v"
-    - "overlay.v"
+    - "text_overlay.v"
     - "rng.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
