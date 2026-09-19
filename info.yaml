@@ -26,6 +26,7 @@ project:
     - "hud.v"
     - "hvsync_generator.v"
     - "input_ctrl.v"
+    - "renderer.v"
     - "player.v"
     - "renderer.v"
     - "rng.v"
