@@ -1,6 +1,7 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# Simple Bullet Hell/TouHou game for TinyTapeOut
+This is a barebones game entry for IEEE IC design bootcamp cohort 3. A bullet game is simply like dodgeball - you control a character to avoid getting hit for as long as you can. The player is given three lives. 
 
 - [Read the documentation for project](docs/info.md)
 
